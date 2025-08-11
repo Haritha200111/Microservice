@@ -1,0 +1,8 @@
+image:
+  repository: docker.io/haritharavichandran/notification-service
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 80
