@@ -8,8 +8,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// TestMain is a simple test to ensure the main function works as expected.
-// hhh
 func TestMain(t *testing.T) {
 	router := gin.Default()
 	router.GET("/", func(c *gin.Context) {
