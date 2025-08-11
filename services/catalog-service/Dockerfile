@@ -7,5 +7,3 @@ FROM alpine:3.17
 WORKDIR /root/
 COPY --from=builder /app/main .
 CMD ["./main"]
-
-# test
