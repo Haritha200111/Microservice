@@ -36,24 +36,35 @@ pipeline {
             }
         }
 
-        stage('Build and Push Images') {
-            when {
-                expression { env.CHANGED_SERVICES && env.CHANGED_SERVICES != '' }
-            }
-            steps {
-                script {
-                    def services = env.CHANGED_SERVICES.tokenize(',')
-                    docker.withRegistry("https://${env.REGISTRY}", "dockerhub-creds") {
-                        services.each { service ->
-                            bat """
-                                docker build -t ${env.REGISTRY}/${service}:${env.GIT_COMMIT_SHORT} .\\services\\${service}
-                                docker push ${env.REGISTRY}/${service}:${env.GIT_COMMIT_SHORT}
-                            """
-                        }
+    stage('Build and Push Images') {
+        when {
+            expression { env.CHANGED_SERVICES && env.CHANGED_SERVICES != '' }
+        }
+        steps {
+            script {
+                def services = env.CHANGED_SERVICES.tokenize(',')
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_HUB_USER', passwordVariable: 'DOCKER_HUB_PSW')]) {
+                    // Login once before pushing all images
+                    bat """
+                        echo %DOCKER_HUB_PSW% | docker login -u %DOCKER_HUB_USER% --password-stdin
+                    """
+                
+                // Build and push images for each changed service
+                    services.each { service ->
+                        def imageName = "${env.REGISTRY}/${service}:${env.GIT_COMMIT_SHORT}"
+                        bat """
+                            docker build -t ${imageName} .\\services\\${service}
+                            docker push ${imageName}
+                        """
                     }
+
+                // Logout after pushing all images (optional)
+                    bat "docker logout"
                 }
             }
         }
+    }
+
 
         stage('Deploy to Kubernetes') {
             when {
