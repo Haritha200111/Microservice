@@ -43,7 +43,7 @@ pipeline {
             steps {
                 script {
                     def services = env.CHANGED_SERVICES.tokenize(',')
-                    docker.withRegistry("https://${env.REGISTRY}", "${env.DOCKER_CREDS}") {
+                    docker.withRegistry("https://${env.REGISTRY}", "dockerhub-creds") {
                         services.each { service ->
                             bat """
                                 docker build -t ${env.REGISTRY}/${service}:${env.GIT_COMMIT_SHORT} .\\services\\${service}
