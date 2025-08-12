@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         REGISTRY = "docker.io/haritharavichandran" // Docker Hub username
-        DOCKER_CREDS = credentials('dockerhub-cred') // Jenkins Docker Hub credentials ID
+        DOCKER_CREDS = credentials('dockerhub-creds') // Jenkins Docker Hub credentials ID
         GIT_COMMIT_SHORT = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
     }
 
