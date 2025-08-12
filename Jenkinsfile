@@ -4,34 +4,50 @@ pipeline {
     environment {
         REGISTRY = "docker.io/haritharavichandran" // Docker Hub username
         DOCKER_CREDS = credentials('dockerhub-creds') // Jenkins Docker Hub credentials ID
-        GIT_COMMIT_SHORT = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
+        // For Windows, use 'bat' to run git command and capture output:
+        GIT_COMMIT_SHORT = ''
     }
 
     stages {
+        stage('Get short commit hash') {
+            steps {
+                script {
+                    // Capture short commit hash on Windows using bat
+                    def commitHash = bat(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
+                    env.GIT_COMMIT_SHORT = commitHash
+                    echo "Short commit hash: ${env.GIT_COMMIT_SHORT}"
+                }
+            }
+        }
+
         stage('Detect Changed Services') {
             steps {
                 script {
-                    changedFiles = sh(script: "git diff --name-only HEAD~1 HEAD", returnStdout: true).trim().split("\n")
-                    changedServices = changedFiles
+                    // Detect changed files between HEAD~1 and HEAD on Windows
+                    def changedFilesRaw = bat(script: 'git diff --name-only HEAD~1 HEAD', returnStdout: true).trim()
+                    def changedFiles = changedFilesRaw.tokenize('\r\n')
+                    def changedServices = changedFiles
                         .findAll { it.startsWith("services/") }
                         .collect { it.split("/")[1] }
                         .unique()
-                    echo "Changed services: ${changedServices}"
+                    env.CHANGED_SERVICES = changedServices.join(',')
+                    echo "Changed services: ${env.CHANGED_SERVICES}"
                 }
             }
         }
 
         stage('Build and Push Images') {
             when {
-                expression { changedServices && changedServices.size() > 0 }
+                expression { env.CHANGED_SERVICES && env.CHANGED_SERVICES != '' }
             }
             steps {
                 script {
-                    docker.withRegistry("https://${REGISTRY}", "${DOCKER_CREDS}") {
-                        changedServices.each { service ->
-                            sh """
-                                docker build -t ${REGISTRY}/${service}:${GIT_COMMIT_SHORT} ./services/${service}
-                                docker push ${REGISTRY}/${service}:${GIT_COMMIT_SHORT}
+                    def services = env.CHANGED_SERVICES.tokenize(',')
+                    docker.withRegistry("https://${env.REGISTRY}", "${env.DOCKER_CREDS}") {
+                        services.each { service ->
+                            bat """
+                                docker build -t ${env.REGISTRY}/${service}:${env.GIT_COMMIT_SHORT} .\\services\\${service}
+                                docker push ${env.REGISTRY}/${service}:${env.GIT_COMMIT_SHORT}
                             """
                         }
                     }
@@ -41,15 +57,16 @@ pipeline {
 
         stage('Deploy to Kubernetes') {
             when {
-                expression { changedServices && changedServices.size() > 0 }
+                expression { env.CHANGED_SERVICES && env.CHANGED_SERVICES != '' }
             }
             steps {
                 script {
-                    changedServices.each { service ->
-                        sh """
-                            helm upgrade --install ${service} ./helm/${service} \
-                            --set image.repository=${REGISTRY}/${service} \
-                            --set image.tag=${GIT_COMMIT_SHORT}
+                    def services = env.CHANGED_SERVICES.tokenize(',')
+                    services.each { service ->
+                        bat """
+                            helm upgrade --install ${service} .\\helm\\${service} ^
+                            --set image.repository=${env.REGISTRY}/${service} ^
+                            --set image.tag=${env.GIT_COMMIT_SHORT}
                         """
                     }
                 }
