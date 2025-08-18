@@ -76,12 +76,12 @@ stage('Deploy to Kubernetes') {
     }
     steps {
         script {
+            echo "CHANGED_SERVICES: '${env.CHANGED_SERVICES}'"
             def services = env.CHANGED_SERVICES.tokenize(',')
-
-            // Optional debug
-            bat 'dir /s /b services\\helm'
+            echo "Parsed services: ${services}"
 
             services.each { service ->
+                echo "Deploying service: ${service}"
                 bat """
                     helm upgrade --install ${service} .\\services\\helm\\${service} ^
                     --set image.repository=${REGISTRY}/${service} ^
