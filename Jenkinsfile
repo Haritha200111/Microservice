@@ -9,18 +9,6 @@ pipeline {
     }
 
     stages {
-        stage('Checkout SCM') {
-            steps {
-                // Checkout with full clone (disable shallow clone)
-                checkout([$class: 'GitSCM',
-                    branches: [[name: env.BRANCH_NAME]],
-                    doGenerateSubmoduleConfigurations: false,
-                    extensions: [[$class: 'CloneOption', noTags: false, shallow: false, depth: 0]],
-                    userRemoteConfigs: [[url: 'your-repo-url']]
-                ])
-            }
-        }
-
         stage('Get short commit hash') {
             steps {
                 script {
@@ -34,16 +22,16 @@ pipeline {
         stage('Detect Changed Services') {
             steps {
                 script {
-                    // Fetch latest main branch to compare against
-                    bat 'git fetch origin main'
-
-                    // Get list of changed files compared to main branch
-                    def changedFilesStr = bat(script: 'git diff --name-only origin/main...HEAD', returnStdout: true).trim()
-                    def changedFiles = changedFilesStr ? changedFilesStr.split("\r\n") : []
-
+                    def changedFiles = []
+                    for (changeLogSet in currentBuild.changeSets) {
+                        for (entry in changeLogSet.items) {
+                            for (file in entry.affectedFiles) {
+                                changedFiles << file.path
+                            }
+                        }
+                    }
                     echo "Changed files: ${changedFiles}"
 
-                    // Extract changed services from paths
                     def changedServices = changedFiles
                         .findAll { it.startsWith("services/") }
                         .collect { it.split('/')[1] }
@@ -91,8 +79,8 @@ pipeline {
                     def services = env.CHANGED_SERVICES.tokenize(',')
                     services.each { service ->
                         bat """
-                            helm upgrade --install ${service} .\\helm\\${service} ^ 
-                            --set image.repository=${env.REGISTRY}/${service} ^ 
+                            helm upgrade --install ${service} .\\helm\\${service} ^
+                            --set image.repository=${env.REGISTRY}/${service} ^
                             --set image.tag=${env.GIT_COMMIT_SHORT}
                         """
                     }
