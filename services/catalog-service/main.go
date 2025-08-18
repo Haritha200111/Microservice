@@ -6,11 +6,12 @@ import (
 )
 
 func handler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Catalog Service: product listuuuuuu")
+	fmt.Fprintf(w, "Catalog Service: product listrrrrr")
 }
 
 func main() {
 	http.HandleFunc("/", handler)
 	fmt.Println("Catalog service running on port 8080")
 	http.ListenAndServe(":8080", nil)
+	fmt.Println("Catalog service stopped")
 }
