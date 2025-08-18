@@ -23,7 +23,7 @@ pipeline {
         stage('Detect Changed Services') {
             steps {
                 script {
-                    // Detect changed files between HEAD~1 and HEAD on Windows
+                    // Detect changed files between HEAD~1 and HEAD
                     def changedFilesRaw = bat(script: 'git diff --name-only HEAD~1 HEAD', returnStdout: true).trim()
                     def changedFiles = changedFilesRaw.tokenize('\r\n')
                     def changedServices = changedFiles
