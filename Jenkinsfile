@@ -5,19 +5,23 @@ pipeline {
         REGISTRY = "docker.io/haritharavichandran"
     }
 
-    stages {
-        stage('Get short commit hash') {
-            steps {
-                script {
-                    // Capture commit hash correctly on Windows
-                    GIT_COMMIT_SHORT = bat(
-                        script: "git rev-parse --short HEAD",
-                        returnStdout: true
-                    ).trim()
-                    echo "Short commit hash: ${GIT_COMMIT_SHORT}"
-                }
-            }
+stage('Get short commit hash') {
+    steps {
+        script {
+            def raw = bat(
+                script: "git rev-parse --short HEAD",
+                returnStdout: true
+            ).trim()
+
+            // On Windows bat, output includes the command itself on the first line
+            def lines = raw.readLines()
+            GIT_COMMIT_SHORT = lines[-1].trim()   // ✅ take only the last line
+
+            echo "Short commit hash: ${GIT_COMMIT_SHORT}"
         }
+    }
+}
+
 
         stage('Detect Changed Services') {
             steps {
@@ -44,26 +48,26 @@ pipeline {
             }
         }
 
-        stage('Build and Push Images') {
-            when {
-                expression { return CHANGED_SERVICES?.trim() }
-            }
-            steps {
-                script {
-                    def services = CHANGED_SERVICES.tokenize(',')
-                    withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_HUB_USER', passwordVariable: 'DOCKER_HUB_PSW')]) {
-                        bat "docker login -u %DOCKER_HUB_USER% -p %DOCKER_HUB_PSW%"
-                        services.each { service ->
-                            def imageName = "${REGISTRY}/${service}:${GIT_COMMIT_SHORT}"
-                            echo "Building image: ${imageName}"
-                            bat "docker build -t ${imageName} services\\${service}"
-                            bat "docker push ${imageName}"
-                        }
-                        bat "docker logout"
-                    }
+ stage('Build and Push Images') {
+    when {
+        expression { return CHANGED_SERVICES?.trim() }
+    }
+    steps {
+        script {
+            def services = CHANGED_SERVICES.tokenize(',')
+            withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_HUB_USER', passwordVariable: 'DOCKER_HUB_PSW')]) {
+                bat "docker login -u %DOCKER_HUB_USER% -p %DOCKER_HUB_PSW%"
+                services.each { service ->
+                    def imageName = "${REGISTRY}/${service}:${GIT_COMMIT_SHORT}"
+                    echo "Building image: ${imageName}"
+                    bat "docker build -t ${imageName} services\\${service}"
+                    bat "docker push ${imageName}"
                 }
+                bat "docker logout"
             }
         }
+    }
+}
 
         stage('Deploy to Kubernetes') {
             when {
