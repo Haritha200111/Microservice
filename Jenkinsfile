@@ -53,7 +53,7 @@ stage('Build and Push Images') {
             def services = CHANGED_SERVICES.tokenize(',')
             withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_HUB_USER', passwordVariable: 'DOCKER_HUB_PSW')]) {
                 bat """
-                    echo %DOCKER_HUB_PSW% | docker login -u %DOCKER_HUB_USER% --password-stdin
+                    docker login -u %DOCKER_HUB_USER% -p %DOCKER_HUB_PSW%
                 """
                 services.each { service ->
                     def imageName = "${REGISTRY}\\${service}:${GIT_COMMIT_SHORT}"
