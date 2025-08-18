@@ -12,7 +12,7 @@ pipeline {
         stage('Get short commit hash') {
             steps {
                 script {
-                    GIT_COMMIT_SHORT = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
+                    GIT_COMMIT_SHORT = bat(script: "git rev-parse --short HEAD", returnStdout: true).trim()
                     env.GIT_COMMIT_SHORT = GIT_COMMIT_SHORT
                     echo "Short commit hash: ${GIT_COMMIT_SHORT}"
                 }
@@ -52,17 +52,19 @@ pipeline {
                 script {
                     def services = env.CHANGED_SERVICES.tokenize(',')
                     withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_HUB_USER', passwordVariable: 'DOCKER_HUB_PSW')]) {
-                        sh "echo $DOCKER_HUB_PSW | docker login -u $DOCKER_HUB_USER --password-stdin"
+                        bat """
+                            echo %DOCKER_HUB_PSW% | docker login -u %DOCKER_HUB_USER% --password-stdin
+                        """
 
                         services.each { service ->
                             def imageName = "${env.REGISTRY}/${service}:${env.GIT_COMMIT_SHORT}"
-                            sh """
-                                docker build -t ${imageName} ./services/${service}
+                            bat """
+                                docker build -t ${imageName} .\\services\\${service}
                                 docker push ${imageName}
                             """
                         }
 
-                        sh "docker logout"
+                        bat "docker logout"
                     }
                 }
             }
@@ -76,9 +78,9 @@ pipeline {
                 script {
                     def services = env.CHANGED_SERVICES.tokenize(',')
                     services.each { service ->
-                        sh """
-                            helm upgrade --install ${service} ./helm/${service} \
-                            --set image.repository=${env.REGISTRY}/${service} \
+                        bat """
+                            helm upgrade --install ${service} .\\helm\\${service} ^
+                            --set image.repository=${env.REGISTRY}/${service} ^
                             --set image.tag=${env.GIT_COMMIT_SHORT}
                         """
                     }
