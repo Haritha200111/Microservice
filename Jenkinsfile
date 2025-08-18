@@ -56,7 +56,7 @@ stage('Build and Push Images') {
                     docker login -u %DOCKER_HUB_USER% -p %DOCKER_HUB_PSW%
                 """
                 services.each { service ->
-                    def imageName = "${REGISTRY}\\${service}:${GIT_COMMIT_SHORT}"
+                    def imageName = "${REGISTRY}/${service}:${GIT_COMMIT_SHORT}"  // ✅ use forward slash
                     bat """
                         docker build -t ${imageName} services\\${service}
                         docker push ${imageName}
@@ -67,6 +67,7 @@ stage('Build and Push Images') {
         }
     }
 }
+
 
 
         stage('Deploy to Kubernetes') {

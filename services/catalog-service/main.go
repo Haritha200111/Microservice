@@ -6,7 +6,7 @@ import (
 )
 
 func handler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Catalog Service: product listrytty")
+	fmt.Fprintf(w, "Catalog Service: product list")
 }
 
 func main() {
