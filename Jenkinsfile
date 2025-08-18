@@ -77,12 +77,14 @@ stage('Deploy to Kubernetes') {
     steps {
         script {
             def services = CHANGED_SERVICES.tokenize(',')
-            services.each { service ->
-                bat """
-                    helm upgrade --install ${service} .\\services\\helm\\${service} ^
-                        --set image.repository=docker.io/${DOCKER_HUB_USER}/${service} ^
-                        --set image.tag=${GIT_COMMIT_SHORT}
-                """
+            withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_HUB_USER', passwordVariable: 'DOCKER_HUB_PSW')]) {
+                services.each { service ->
+                    bat """
+                        helm upgrade --install ${service} .\\services\\helm\\${service} ^
+                            --set image.repository=docker.io/${DOCKER_HUB_USER}/${service} ^
+                            --set image.tag=${GIT_COMMIT_SHORT}
+                    """
+                }
             }
         }
     }
