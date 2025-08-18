@@ -5,6 +5,7 @@ pipeline {
         REGISTRY = "docker.io/haritharavichandran"
     }
 
+    stages {
 stage('Get short commit hash') {
     steps {
         script {
@@ -48,7 +49,7 @@ stage('Get short commit hash') {
             }
         }
 
- stage('Build and Push Images') {
+stage('Build and Push Images') {
     when {
         expression { return CHANGED_SERVICES?.trim() }
     }
