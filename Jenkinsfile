@@ -72,25 +72,22 @@ stage('Build and Push Images') {
 
 stage('Deploy to Kubernetes') {
     when {
-        expression { env.CHANGED_SERVICES && env.CHANGED_SERVICES != '' }
+        expression { return CHANGED_SERVICES?.trim() }
     }
     steps {
         script {
-            echo "CHANGED_SERVICES: '${env.CHANGED_SERVICES}'"
-            def services = env.CHANGED_SERVICES.tokenize(',')
-            echo "Parsed services: ${services}"
-
+            def services = CHANGED_SERVICES.tokenize(',')
             services.each { service ->
-                echo "Deploying service: ${service}"
                 bat """
                     helm upgrade --install ${service} .\\services\\helm\\${service} ^
-                    --set image.repository=${REGISTRY}/${service} ^
-                    --set image.tag=${GIT_COMMIT_SHORT}
+                        --set image.repository=docker.io/${DOCKER_HUB_USER}/${service} ^
+                        --set image.tag=${GIT_COMMIT_SHORT}
                 """
             }
         }
     }
 }
+
 
     }
 }
