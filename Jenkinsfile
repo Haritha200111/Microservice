@@ -70,23 +70,28 @@ stage('Build and Push Images') {
     }
 }
 
-        stage('Deploy to Kubernetes') {
-            when {
-                expression { return CHANGED_SERVICES?.trim() }
-            }
-            steps {
-                script {
-                    def services = CHANGED_SERVICES.tokenize(',')
-                    services.each { service ->
-                        bat """
-                            helm upgrade --install ${service} .\\helm\\${service} ^
-                            --set image.repository=${REGISTRY}/${service} ^
-                            --set image.tag=${GIT_COMMIT_SHORT}
-                        """
-                    }
-                }
+stage('Deploy to Kubernetes') {
+    when {
+        expression { env.CHANGED_SERVICES && env.CHANGED_SERVICES != '' }
+    }
+    steps {
+        script {
+            def services = env.CHANGED_SERVICES.tokenize(',')
+
+            // Optional debug
+            bat 'dir /s /b services\\helm'
+
+            services.each { service ->
+                bat """
+                    helm upgrade --install ${service} .\\services\\helm\\${service} ^
+                    --set image.repository=${REGISTRY}/${service} ^
+                    --set image.tag=${GIT_COMMIT_SHORT}
+                """
             }
         }
+    }
+}
+
     }
 }
 
